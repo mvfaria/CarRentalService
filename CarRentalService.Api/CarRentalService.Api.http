@@ -1,0 +1,27 @@
+@CarRentalService_HostAddress = http://localhost:5003/car-rental
+
+### 1. Query Vehicle Availability
+GET {{CarRentalService_HostAddress}}/availability?pickupDate=2024-09-01&returnDate=2024-09-05&vehicleTypes=Sedan&vehicleTypes=SUV
+
+### 2. Query Vehicle Availability (No vehicle types specified)
+GET {{CarRentalService_HostAddress}}/availability?pickupDate=2024-09-01&returnDate=2024-09-05
+
+### 3. Create Reservation
+POST {{CarRentalService_HostAddress}}/reservations
+Content-Type: application/json
+
+{
+  "vehicleType": "SUV",
+  "pickupDate": "2024-09-01T10:00:00",
+  "returnDate": "2024-09-05T10:00:00"
+}
+
+### 4. Create Reservation (different date range)
+POST {{CarRentalService_HostAddress}}/reservations
+Content-Type: application/json
+
+{
+  "vehicleType": "SUV",
+  "pickupDate": "2024-09-10T10:00:00",
+  "returnDate": "2024-09-15T10:00:00"
+}
