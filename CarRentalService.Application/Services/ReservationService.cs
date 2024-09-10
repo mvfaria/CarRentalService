@@ -18,6 +18,7 @@ public class ReservationService : IReservationService
 
     public async Task<bool> CreateReservationAsync(string vehicleType, DateRange dateRange)
     {
+        // TODO: replace Semaphore with transaction once DB implementation is in place
         await _semaphore.WaitAsync(); // Lock to ensure only one request checks availability at a time
 
         try
