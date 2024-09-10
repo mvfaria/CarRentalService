@@ -1,5 +1,4 @@
 using CarRentalService.Application.Interfaces;
-using CarRentalService.Domain.Entities;
 using CarRentalService.Domain.ValueObjects;
 using MediatR;
 
@@ -7,30 +6,16 @@ namespace CarRentalService.Application.Commands;
 
 public class CreateReservationHandler : IRequestHandler<CreateReservationCommand, bool>
 {
-    private readonly IReservationRepository _reservationRepository;
-    private readonly IAvailabilityService _availabilityService;
+    private readonly IReservationService _reservationService;
 
-    public CreateReservationHandler(IReservationRepository reservationRepository, IAvailabilityService availabilityService)
+    public CreateReservationHandler(IReservationService reservationService)
     {
-        _reservationRepository = reservationRepository;
-        _availabilityService = availabilityService;
+        _reservationService = reservationService;
     }
 
     public async Task<bool> Handle(CreateReservationCommand request, CancellationToken cancellationToken)
     {
         var dateRange = new DateRange(request.PickupDate, request.ReturnDate);
-        var availableVehicles = await _availabilityService.GetAvailableVehiclesAsync(dateRange, request.VehicleType);
-
-        if (!availableVehicles.Any())
-            return false; // No vehicles available
-
-        await _reservationRepository.AddReservationAsync(new Reservation
-        {
-            VehicleType = request.VehicleType,
-            PickupDate = request.PickupDate,
-            ReturnDate = request.ReturnDate
-        });
-
-        return true;
+        return await _reservationService.CreateReservationAsync(request.VehicleType, dateRange);
     }
 }

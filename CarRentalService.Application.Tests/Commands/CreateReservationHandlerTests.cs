@@ -1,113 +1,68 @@
 using CarRentalService.Application.Commands;
 using CarRentalService.Application.Interfaces;
-using CarRentalService.Domain.Entities;
 using CarRentalService.Domain.ValueObjects;
 using FluentAssertions;
 using Moq;
 
-namespace CarRentalService.Application.Tests.Commands;
-
-public class CreateReservationHandlerTests
+namespace CarRentalService.Application.Tests.Commands
 {
-    private readonly Mock<IReservationRepository> _reservationRepositoryMock;
-    private readonly Mock<IAvailabilityService> _availabilityServiceMock;
-    private readonly CreateReservationHandler _handler;
-
-    public CreateReservationHandlerTests()
+    public class CreateReservationHandlerTests
     {
-        _reservationRepositoryMock = new Mock<IReservationRepository>();
-        _availabilityServiceMock = new Mock<IAvailabilityService>();
-        _handler = new CreateReservationHandler(_reservationRepositoryMock.Object, _availabilityServiceMock.Object);
-    }
+        private readonly Mock<IReservationService> _reservationServiceMock;
+        private readonly CreateReservationHandler _handler;
 
-    [Fact]
-    public async Task Handle_Should_CreateReservation_When_VehicleIsAvailable()
-    {
-        // Arrange
-        var command = new CreateReservationCommand
+        public CreateReservationHandlerTests()
         {
-            PickupDate = new DateTime(2024, 9, 1),
-            ReturnDate = new DateTime(2024, 9, 10),
-            VehicleType = "SUV"
-        };
+            _reservationServiceMock = new Mock<IReservationService>();
+            _handler = new CreateReservationHandler(_reservationServiceMock.Object);
+        }
 
-        var availableVehicles = new List<VehicleType>
+        [Fact]
+        public async Task Handle_Should_Call_CreateReservationAsync_Once()
         {
-            new VehicleType { Name = "SUV", TotalCount = 1 }
-        };
+            // Arrange
+            var command = new CreateReservationCommand
+            {
+                VehicleType = "SUV",
+                PickupDate = DateTime.Now,
+                ReturnDate = DateTime.Now.AddDays(5)
+            };
 
-        _availabilityServiceMock
-            .Setup(x => x.GetAvailableVehiclesAsync(It.IsAny<DateRange>(), It.IsAny<string>()))
-            .ReturnsAsync(availableVehicles);
+            var dateRange = new DateRange(command.PickupDate, command.ReturnDate);
 
-        _reservationRepositoryMock
-            .Setup(x => x.AddReservationAsync(It.IsAny<Reservation>()))
-            .Returns(Task.CompletedTask);
+            _reservationServiceMock
+                .Setup(s => s.CreateReservationAsync(command.VehicleType, It.IsAny<DateRange>()))
+                .ReturnsAsync(true);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        result.Should().BeTrue(); // Reservation should succeed
-        _reservationRepositoryMock.Verify(x => x.AddReservationAsync(It.IsAny<Reservation>()), Times.Once);
-    }
+            // Assert
+            result.Should().BeTrue();
+            _reservationServiceMock.Verify(s => s.CreateReservationAsync(command.VehicleType, It.Is<DateRange>(dr => dr.StartDate == command.PickupDate && dr.EndDate == command.ReturnDate)), Times.Once);
+        }
 
-    [Fact]
-    public async Task Handle_Should_ReturnFalse_When_NoVehiclesAreAvailable()
-    {
-        // Arrange
-        var command = new CreateReservationCommand
+        [Fact]
+        public async Task Handle_Should_Return_False_If_Reservation_Fails()
         {
-            PickupDate = new DateTime(2024, 9, 1),
-            ReturnDate = new DateTime(2024, 9, 10),
-            VehicleType = "SUV"
-        };
+            // Arrange
+            var command = new CreateReservationCommand
+            {
+                VehicleType = "Sedan",
+                PickupDate = DateTime.Now,
+                ReturnDate = DateTime.Now.AddDays(2)
+            };
 
-        _availabilityServiceMock
-            .Setup(x => x.GetAvailableVehiclesAsync(It.IsAny<DateRange>(), It.IsAny<string>()))
-            .ReturnsAsync(new List<VehicleType>());
+            _reservationServiceMock
+                .Setup(s => s.CreateReservationAsync(command.VehicleType, It.IsAny<DateRange>()))
+                .ReturnsAsync(false);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        result.Should().BeFalse(); // Reservation should fail
-        _reservationRepositoryMock.Verify(x => x.AddReservationAsync(It.IsAny<Reservation>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_Should_Call_AddReservationAsync_With_Correct_Reservation()
-    {
-        // Arrange
-        var command = new CreateReservationCommand
-        {
-            PickupDate = new DateTime(2024, 9, 1),
-            ReturnDate = new DateTime(2024, 9, 10),
-            VehicleType = "Sedan"
-        };
-
-        var availableVehicles = new List<VehicleType>
-        {
-            new VehicleType { Name = "Sedan", TotalCount = 1 }
-        };
-
-        _availabilityServiceMock
-            .Setup(x => x.GetAvailableVehiclesAsync(It.IsAny<DateRange>(), It.IsAny<string>()))
-            .ReturnsAsync(availableVehicles);
-
-        Reservation? createdReservation = null;
-        _reservationRepositoryMock
-            .Setup(x => x.AddReservationAsync(It.IsAny<Reservation>()))
-            .Callback<Reservation>(reservation => createdReservation = reservation)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        createdReservation.Should().NotBeNull();
-        createdReservation!.VehicleType.Should().Be("Sedan");
-        createdReservation.PickupDate.Should().Be(command.PickupDate);
-        createdReservation.ReturnDate.Should().Be(command.ReturnDate);
+            // Assert
+            result.Should().BeFalse();
+            _reservationServiceMock.Verify(s => s.CreateReservationAsync(command.VehicleType, It.IsAny<DateRange>()), Times.Once);
+        }
     }
 }
