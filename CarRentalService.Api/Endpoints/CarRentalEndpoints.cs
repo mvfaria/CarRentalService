@@ -9,6 +9,7 @@ public static class CarRentalEndpoints
 {
     public static void RegisterCarRentalEndpoints(this WebApplication app)
     {
+        // TODO: Test API Endpoints
         var carRental = app.MapGroup("/car-rental");
         
         carRental.MapPost("/reservations", CreateReservation);

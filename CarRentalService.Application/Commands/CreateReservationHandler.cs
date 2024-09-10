@@ -1,5 +1,4 @@
 using CarRentalService.Application.Interfaces;
-using CarRentalService.Application.Services;
 using CarRentalService.Domain.Entities;
 using CarRentalService.Domain.ValueObjects;
 using MediatR;
