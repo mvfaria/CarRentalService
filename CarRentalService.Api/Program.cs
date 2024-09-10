@@ -24,6 +24,7 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 builder.Services.AddSingleton<IReservationRepository, ReservationRepository>();
 builder.Services.AddSingleton<IVehicleTypeRepository, VehicleTypeRepository>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
